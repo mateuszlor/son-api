@@ -1,0 +1,91 @@
+"""Pydantic models for SON REST API responses."""
+
+from typing import Optional, List
+from pydantic import BaseModel
+
+
+class TenantOut(BaseModel):
+    tenant_id: str
+    user_fullname: str
+    address: Optional[str] = None
+    user_active: Optional[str] = None
+    user_balance: Optional[str] = None
+    estate_id: Optional[str] = None
+    eah_owner_fullname: Optional[str] = None
+    tags: Optional[str] = None
+
+
+class OperationOut(BaseModel):
+    tenant_id: Optional[int] = None
+    tenant_name: Optional[str] = None
+    type: Optional[str] = None
+    date: Optional[str] = None
+    date_raw: Optional[str] = None
+    income: Optional[float] = None
+    expense: Optional[float] = None
+    balance: Optional[float] = None
+    document: Optional[str] = None
+    pdf_url: Optional[str] = None
+    status: Optional[str] = None
+    description: Optional[str] = None
+
+
+class LiabilityOut(BaseModel):
+    tenant_id: Optional[int] = None
+    tenant_name: Optional[str] = None
+    item_name: Optional[str] = None
+    amount_before_discount: Optional[float] = None
+    amount_after_discount: Optional[float] = None
+    total_discount: Optional[float] = None
+    discount_details: Optional[str] = None
+    billing_frequency: Optional[str] = None
+    period: Optional[str] = None
+
+
+class InsuranceOut(BaseModel):
+    tenant_id: Optional[int] = None
+    tenant_name: Optional[str] = None
+    id: Optional[str] = None
+    company: Optional[str] = None
+    policy_number: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    estate_id: Optional[str] = None
+    room_id: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class FinanceOut(BaseModel):
+    type: Optional[str] = None
+    date: Optional[str] = None
+    date_raw: Optional[str] = None
+    payment: Optional[float] = None
+    charge: Optional[float] = None
+    balance: Optional[float] = None
+    document: Optional[str] = None
+    pdf_url: Optional[str] = None
+    status: Optional[str] = None
+    description: Optional[str] = None
+
+
+class CostDocumentOut(BaseModel):
+    date_added: Optional[str] = None
+    date_added_raw: Optional[str] = None
+    sale_date: Optional[str] = None
+    sale_date_raw: Optional[str] = None
+    seller: Optional[str] = None
+    is_payout: Optional[bool] = None
+    number: Optional[str] = None
+    amount: Optional[float] = None
+    payment_deadline: Optional[str] = None
+    payment_deadline_raw: Optional[str] = None
+    payment_date: Optional[str] = None
+    payment_date_raw: Optional[str] = None
+    download_zip_url: Optional[str] = None
+    cost_document_id: Optional[str] = None
+
+
+class HealthOut(BaseModel):
+    status: str
+    son_connected: bool

@@ -99,4 +99,17 @@ See `docs/` for detailed documentation:
 - `complete_endpoint_documentation.md` — all 52 panel endpoints
 - `son_integration_models.md` — data models (Python + TypeScript)
 - `automation_flow.md` — flow diagrams (Mermaid, validated)
-- `system_analysis_and_automation_plan.md` — system analysis + automation plan
+- `system_analysis_and_automation_plan.md` - system analysis + automation plan
+
+## API (REST)
+
+Uruchomienie lokalne:
+```
+python api_server.py
+```
+Dokumentacja OpenAPI: `http://127.0.0.1:8000/docs`
+
+Docker:
+```
+docker compose up -d --build
+```

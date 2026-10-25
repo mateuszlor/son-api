@@ -1,0 +1,16 @@
+services:
+  son-api:
+    build: .
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - OUT_DIR=/app/invoices
+    volumes:
+      - son_data:/app/invoices
+    restart: unless-stopped
+
+volumes:
+  son_data:
