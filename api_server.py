@@ -27,13 +27,19 @@ app = FastAPI(title="SON Panel API", version="1.0.0")
 
 
 @app.get("/health", response_model=HealthOut)
-def health():
+@app.get("/health/ready", response_model=HealthOut)
+def health_ready():
     try:
         from lib.api_son import get_client
         get_client()
         return HealthOut(status="ok", son_connected=True)
     except Exception:
         raise HTTPException(status_code=503, detail="SON panel unavailable")
+
+
+@app.get("/health/live")
+def health_live():
+    return {"status": "ok"}
 
 
 @app.get("/v1/tenants", response_model=list[TenantOut])

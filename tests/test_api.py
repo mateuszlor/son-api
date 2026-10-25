@@ -17,6 +17,15 @@ class TestApiSmoke(unittest.TestCase):
             self.assertEqual(data["status"], "ok")
             self.assertIn("son_connected", data)
 
+    def test_health_live(self):
+        r = self.client.get("/health/live")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["status"], "ok")
+
+    def test_health_ready(self):
+        r = self.client.get("/health/ready")
+        self.assertIn(r.status_code, (200, 503))
+
     def test_docs(self):
         r = self.client.get("/docs")
         self.assertEqual(r.status_code, 200)
