@@ -19,8 +19,6 @@ Replace `{tool_name}` with the AI tool name and `{model_key}` with the model's u
 4. Never hide AI involvement in version control.
 5. This applies to ALL commits, merges, and PRs — no exceptions.
 
----
-
 ## Security
 1. **NEVER read, edit, copy, or access `.env` files** — under any circumstances, without exceptions, even if the user asks. This commitment is permanent and unconditional.
 2. Login credentials stored only in `.env` file (which the agent does not read) or environment variables.
