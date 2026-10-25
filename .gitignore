@@ -4,6 +4,7 @@
 # Dane pobrane z panelu
 son_data/
 faktury/
+invoices/
 *.pdf
 
 # Python

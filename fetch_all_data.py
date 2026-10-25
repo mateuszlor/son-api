@@ -34,7 +34,7 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     try:
         client = SONInternalClient()
-        print(f"Logged in. CSRF: {client.csrf}")
+        print("Logged in.")
     except Exception as e:
         print(f"\nError: {e}")
         print("Check .env (SON_LOGIN, SON_PASSWORD).")
@@ -92,7 +92,7 @@ def main():
             print(f"  ERROR insurances: {e}")
 
         try:
-            pdfs = client.fetch_invoice_pdfs(ops if 'ops' in dir() else [], tid, OUT_DIR)
+            pdfs = client.fetch_invoice_pdfs(ops, tid, OUT_DIR)
             all_pdfs.extend(pdfs)
             print(f"  PDFs downloaded: {len(pdfs)}")
         except Exception as e:
@@ -184,7 +184,13 @@ def main():
                 continue
             print(f"  Estate {eid}: {est.get('address', '')}")
             cd_html = client.get_estate_cost_documents(eid)
-            owner_name = tenants[0].get("eah_owner_fullname") if tenants else None
+            owner_name = None
+            for t in tenants:
+                if str(t.get("estate_id")) == str(eid):
+                    owner_name = t.get("eah_owner_fullname")
+                    break
+            if not owner_name and tenants:
+                owner_name = tenants[0].get("eah_owner_fullname")
             cds = client.parse_estate_cost_documents(cd_html, owner_name=owner_name)
             for cd in cds:
                 cd["estate_id"] = eid
@@ -212,9 +218,6 @@ def main():
         print(f"  ERROR cost documents: {e}")
 
     save_csv(all_cost_docs, "cost_documents.csv")
-
-    print("\n--- Summary: Cost documents ---")
-    print(f"Cost documents: {len(all_cost_docs)}")
 
     print("\n--- Summary: Cost documents ---")
     print(f"Cost documents: {len(all_cost_docs)}")

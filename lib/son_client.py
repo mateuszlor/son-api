@@ -44,9 +44,8 @@ if not _env_loaded:
                         os.environ[_key] = _val
 
 BASE = os.getenv("SON_PANEL_URL")
-if not BASE:
-    raise SystemExit("Ustaw SON_PANEL_URL w pliku .env (np. https://your-panel.example.com)")
-BASE = BASE.rstrip("/")
+if BASE:
+    BASE = BASE.rstrip("/")
 LOGIN = os.getenv("SON_LOGIN")
 PASSWORD = os.getenv("SON_PASSWORD")
 OUT_DIR = os.getenv("SON_OUT_DIR", "./invoices")
@@ -106,6 +105,10 @@ def extract_tables_with_links(html):
 
 class SONInternalClient:
     def __init__(self):
+        if not BASE:
+            raise RuntimeError("Ustaw SON_PANEL_URL w pliku .env (np. https://your-panel.example.com)")
+        if not LOGIN or not PASSWORD:
+            raise RuntimeError("Ustaw SON_LOGIN i SON_PASSWORD w pliku .env")
         self.s = requests.Session()
         self.s.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -524,6 +527,10 @@ class SONInternalClient:
         try:
             r = self.s.get(full_url, headers=self._ajax_headers(), timeout=60, stream=True)
             if r.status_code == 200:
+                content_type = r.headers.get("Content-Type", "")
+                if "application/pdf" not in content_type:
+                    print(f"    Not a PDF ({content_type}): {full_url}")
+                    return False
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 with open(dest_path, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
