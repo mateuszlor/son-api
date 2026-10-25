@@ -112,7 +112,7 @@ def get_estate_cost_documents(estate_id: int):
         _raise_panel_error(e)
 
 
-@app.get("/v1/estates/{estate_id}/payouts", response_model=list[CostDocumentOut])
+@app.get("/v1/estates/{estate_id}/cost-documents/payouts", response_model=list[CostDocumentOut])
 def get_estate_payouts(estate_id: int):
     try:
         return estate_payouts(estate_id)
