@@ -2,7 +2,6 @@
 
 ## Configuration (.env)
 
-Configuration (.env):
 - `SON_LOGIN` - SON panel login (email)
 - `SON_PASSWORD` - SON panel password
 - `SON_PANEL_URL` - panel URL (e.g. https://your-panel.example.com)
@@ -15,6 +14,23 @@ Payout detection is automatic (owner name from panel).
 Notes:
 - `.env` is not copied into the Docker image; it is bind-mounted as `/app/.env`.
 - In Docker set `SON_OUT_DIR=/app/invoices` (named volume `son_data`).
+
+## Endpoints
+
+- `GET /health` - readiness (panel check, 503 if down)
+- `GET /health/live` - liveness (no network)
+- `GET /health/ready` - readiness (panel check)
+- `GET /v1/tenants` - list tenants
+- `GET /v1/estates` - list estates
+- `GET /v1/tenants/{id}/operations` - tenant operations
+- `GET /v1/tenants/{id}/liabilities` - tenant liabilities
+- `GET /v1/tenants/{id}/insurances` - tenant insurances
+- `GET /v1/finances` - owner finances
+- `GET /v1/estates/{id}/cost-documents` - estate cost documents
+- `GET /v1/estates/{id}/cost-documents/payouts` - payouts only
+- `GET /v1/artifacts/{path}` - download file (PDF/CSV)
+
+IDs are integers; booleans are true/false; dates are ISO (YYYY-MM-DD).
 
 ## Run locally
 
