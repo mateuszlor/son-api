@@ -5,6 +5,7 @@ safe for concurrent sessions) and converts parsed data to API models.
 """
 
 import os
+import time
 import threading
 from datetime import date
 
@@ -18,10 +19,8 @@ from lib.api_models import (
 _panel_lock = threading.Lock()
 _client_lock = threading.Lock()
 _client = None
-_tenant_name_cache = None
-_tenant_name_cache_time = 0.0
-_tenants_cache = None
-_tenants_cache_time = 0.0
+_tenants_raw_cache = None
+_tenants_raw_cache_time = 0.0
 _TENANT_CACHE_TTL = 300.0
 
 
@@ -66,14 +65,21 @@ def _to_bool(v):
     return str(v).strip().lower() in ("1", "true", "yes", "y")
 
 
-def list_tenants():
-    global _tenants_cache, _tenants_cache_time
+def _get_raw_tenants():
+    global _tenants_raw_cache, _tenants_raw_cache_time
     now = time.monotonic()
-    if _tenants_cache is not None and (now - _tenants_cache_time) < _TENANT_CACHE_TTL:
-        return _tenants_cache
+    if _tenants_raw_cache is not None and (now - _tenants_raw_cache_time) < _TENANT_CACHE_TTL:
+        return _tenants_raw_cache
     client = get_client()
     with _panel_lock:
         rows = client.get_tenants()
+    _tenants_raw_cache = rows
+    _tenants_raw_cache_time = now
+    return rows
+
+
+def list_tenants():
+    rows = _get_raw_tenants()
     out = []
     for r in rows:
         tid = r.get("tenant_id")
@@ -88,8 +94,6 @@ def list_tenants():
             eah_owner_fullname=r.get("eah_owner_fullname"),
             tags=r.get("tags"),
         ))
-    _tenants_cache = out
-    _tenants_cache_time = now
     return out
 
 
@@ -120,22 +124,20 @@ def list_estates():
     return out
 
 
-import time
-
 def _load_tenant_names():
     global _tenant_name_cache, _tenant_name_cache_time
     now = time.monotonic()
     if _tenant_name_cache is not None and (now - _tenant_name_cache_time) < _TENANT_CACHE_TTL:
         return _tenant_name_cache
     try:
-        rows = list_tenants()
+        rows = _get_raw_tenants()
     except Exception:
-        return _tenant_name_cache or {}
+        return {}
     cache = {}
-    for t in rows:
-        cache[str(t.tenant_id)] = t.user_fullname
-    _tenant_name_cache = cache
-    _tenant_name_cache_time = now
+    for r in rows:
+        tid = r.get("tenant_id")
+        if tid is not None:
+            cache[str(tid)] = r.get("user_fullname")
     return cache
 
 

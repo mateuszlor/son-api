@@ -43,6 +43,8 @@ class TestApiSmoke(unittest.TestCase):
         import tempfile, os
         base = tempfile.mkdtemp()
         self.assertIsNone(safe_resolve(base, "../README.md"))
+        r = self.client.get("/v1/artifacts/%2e%2e%2fREADME.md")
+        self.assertEqual(r.status_code, 404)
 
 
 if __name__ == "__main__":

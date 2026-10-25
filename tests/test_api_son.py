@@ -31,6 +31,8 @@ class TestApiSon(unittest.TestCase):
         with patch("lib.api_son.get_client", return_value=FakeClient()):
             # reset tenant name cache
             api_son._tenant_name_cache = None
+            api_son._tenants_raw_cache = None
+            api_son._tenants_raw_cache_time = 0.0
             res = api_son.list_tenants()
         self.assertEqual(len(res), 1)
         self.assertIsInstance(res[0], TenantOut)
