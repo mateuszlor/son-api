@@ -5,12 +5,12 @@ from pydantic import BaseModel
 
 
 class TenantOut(BaseModel):
-    tenant_id: str
+    tenant_id: int
     user_fullname: str
     address: Optional[str] = None
     user_active: Optional[bool] = None
     user_balance: Optional[str] = None
-    estate_id: Optional[str] = None
+    estate_id: Optional[int] = None
     eah_owner_fullname: Optional[str] = None
     tags: Optional[str] = None
 

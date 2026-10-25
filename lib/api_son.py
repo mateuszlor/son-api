@@ -38,13 +38,15 @@ def list_tenants():
         rows = client.get_tenants()
     out = []
     for r in rows:
+        tid = r.get("tenant_id")
+        eid = r.get("estate_id")
         out.append(TenantOut(
-            tenant_id=str(r.get("tenant_id")),
+            tenant_id=int(tid) if tid is not None and str(tid).isdigit() else tid,
             user_fullname=r.get("user_fullname") or "",
             address=r.get("address"),
             user_active=(r.get("user_active") == "1") if r.get("user_active") is not None else None,
             user_balance=r.get("user_balance"),
-            estate_id=r.get("estate_id"),
+            estate_id=int(eid) if eid is not None and str(eid).isdigit() else None,
             eah_owner_fullname=r.get("eah_owner_fullname"),
             tags=r.get("tags"),
         ))
@@ -55,6 +57,11 @@ def list_estates():
     client = get_client()
     with _lock:
         rows = client.get_estates()
+    for r in rows:
+        if isinstance(r, dict) and "estate_id" in r:
+            eid = r.get("estate_id")
+            if eid is not None and str(eid).isdigit():
+                r["estate_id"] = int(eid)
     return rows
 
 
