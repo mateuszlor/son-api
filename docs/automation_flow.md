@@ -136,7 +136,7 @@ Both scripts use `SONInternalClient` from `lib/son_client.py`:
 | `parse_insurances(data, id, name)` | — | List of insurance dicts |
 | `parse_finances(html)` | — | List of finance dicts |
 | `parse_estate_cost_documents(html, owner_name)` | — | List of cost document dicts |
-| `detect_new_invoices(id, name, known)` | — | New invoices + updated known set |
+
 | `download_file(url, path)` | GET (any) | True/False |
 | `fetch_invoice_pdfs(ops, id, dir)` | /finances/download/{id} | List of downloaded paths |
 | `normalize_url(url)` | — | Absolute URL |

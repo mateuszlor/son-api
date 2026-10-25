@@ -425,18 +425,6 @@ class SONInternalClient:
             result.append(entry)
         return result
 
-    def detect_new_invoices(self, tenant_id, tenant_name, known_invoice_numbers):
-        html = self.get_tenant_operations(tenant_id)
-        ops = self.parse_operations(html, tenant_id, tenant_name)
-        new_invoices = []
-        for op in ops:
-            if op.get("type") in ("FV", "KR") and op.get("document"):
-                inv_num = op["document"]
-                if inv_num not in known_invoice_numbers:
-                    new_invoices.append(op)
-                    known_invoice_numbers.add(inv_num)
-        return new_invoices, known_invoice_numbers, ops
-
     def get_estate_cost_documents(self, estate_id):
         """Fetch cost documents for an estate. Returns HTML."""
         r = self._get(f"/estates/estate-cost-documents/{estate_id}/")

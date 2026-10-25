@@ -205,13 +205,11 @@ def main():
                 if not cd_id or cd_id in seen:
                     continue
                 seen.add(cd_id)
-                url = client.get_cost_document_download_url(cd_id)
-                if url:
-                    safe = re.sub(r"[^\w\-]", "_", str(cd.get("number", cd_id)))
-                    dest = os.path.join(OUT_DIR, f"cost_docs_pdfs/{safe}.pdf")
-                    if not os.path.exists(dest):
-                        if client.download_file(url, dest):
-                            print(f"    Downloaded: {safe}.pdf")
+                safe = re.sub(r"[^\w\-]", "_", str(cd.get("number", cd_id)))
+                dest = os.path.join(OUT_DIR, f"cost_docs_pdfs/{safe}.pdf")
+                if not os.path.exists(dest):
+                    if client.download_cost_document(cd_id, dest):
+                        print(f"    Downloaded: {safe}.pdf")
             with open(os.path.join(OUT_DIR, f"cost_docs_{eid}.html"), "w", encoding="utf-8") as f:
                 f.write(cd_html)
     except Exception as e:
