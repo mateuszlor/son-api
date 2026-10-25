@@ -9,9 +9,12 @@ Docs:
 """
 
 import os
+import logging
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+
+logger = logging.getLogger("son_api")
 
 from lib.api_son import (
     list_tenants, list_estates, tenant_operations, tenant_liabilities,
@@ -27,16 +30,19 @@ app = FastAPI(title="SON Panel API", version="1.0.0")
 
 
 def _raise_panel_error(exc):
-    status = 502
+    if isinstance(exc, HTTPException):
+        raise exc
     resp = getattr(exc, "response", None)
     if resp is not None:
         code = getattr(resp, "status_code", None)
-        if code == 404:
-            status = 404
-        elif isinstance(code, int) and code >= 500:
+        status = 404 if code == 404 else 502
+    else:
+        msg = str(exc).lower()
+        if any(k in msg for k in ("login failed", "csrf", "max retries", "logged in but")):
             status = 502
-    elif "404" in str(exc):
-        status = 404
+        else:
+            status = 500
+    logger.exception("SON panel error")
     raise HTTPException(status_code=status, detail="SON panel error") from exc
 
 
