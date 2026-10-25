@@ -9,7 +9,7 @@ class TenantOut(BaseModel):
     user_fullname: str
     address: Optional[str] = None
     user_active: Optional[bool] = None
-    user_balance: Optional[str] = None
+    user_balance: Optional[float] = None
     estate_id: Optional[int] = None
     eah_owner_fullname: Optional[str] = None
     tags: Optional[str] = None
@@ -45,14 +45,14 @@ class LiabilityOut(BaseModel):
 class InsuranceOut(BaseModel):
     tenant_id: Optional[int] = None
     tenant_name: Optional[str] = None
-    id: Optional[str] = None
+    id: Optional[int] = None
     company: Optional[str] = None
     policy_number: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[int] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
-    estate_id: Optional[str] = None
-    room_id: Optional[str] = None
+    estate_id: Optional[int] = None
+    room_id: Optional[int] = None
     created_at: Optional[str] = None
 
 
@@ -83,7 +83,7 @@ class CostDocumentOut(BaseModel):
     payment_date: Optional[str] = None
     payment_date_raw: Optional[str] = None
     download_zip_url: Optional[str] = None
-    cost_document_id: Optional[str] = None
+    cost_document_id: Optional[int] = None
 
 
 class HealthOut(BaseModel):

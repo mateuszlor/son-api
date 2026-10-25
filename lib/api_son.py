@@ -8,7 +8,7 @@ import os
 import threading
 from datetime import date
 
-from lib.son_client import SONInternalClient, OUT_DIR
+from lib.son_client import SONInternalClient, OUT_DIR, parse_pln
 from lib.api_models import (
     TenantOut, OperationOut, LiabilityOut, InsuranceOut, FinanceOut, CostDocumentOut,
 )
@@ -45,7 +45,7 @@ def list_tenants():
             user_fullname=r.get("user_fullname") or "",
             address=r.get("address"),
             user_active=(r.get("user_active") == "1") if r.get("user_active") is not None else None,
-            user_balance=r.get("user_balance"),
+            user_balance=parse_pln(r.get("user_balance")),
             estate_id=int(eid) if eid is not None and str(eid).isdigit() else None,
             eah_owner_fullname=r.get("eah_owner_fullname"),
             tags=r.get("tags"),
@@ -58,10 +58,17 @@ def list_estates():
     with _lock:
         rows = client.get_estates()
     for r in rows:
-        if isinstance(r, dict) and "estate_id" in r:
+        if isinstance(r, dict):
             eid = r.get("estate_id")
             if eid is not None and str(eid).isdigit():
                 r["estate_id"] = int(eid)
+            ren = r.get("estate_is_under_renovation")
+            if ren is not None and str(ren).isdigit():
+                r["estate_is_under_renovation"] = (str(ren) == "1")
+            for key in ("estate_manage_type", "estate_rental_type", "free_rooms_count"):
+                v = r.get(key)
+                if v is not None and str(v).isdigit():
+                    r[key] = int(v)
     return rows
 
 
@@ -130,17 +137,21 @@ def tenant_insurances(tenant_id):
         parsed = client.parse_insurances(data, int(tenant_id) if str(tenant_id).isdigit() else tenant_id, name or "")
     out = []
     for e in parsed:
+        iid = e.get("id")
+        st = e.get("status")
+        eid = e.get("estate_id")
+        rid = e.get("room_id")
         out.append(InsuranceOut(
             tenant_id=e.get("tenant_id"),
             tenant_name=e.get("tenant_name"),
-            id=e.get("id"),
+            id=int(iid) if iid is not None and str(iid).isdigit() else None,
             company=e.get("company"),
             policy_number=e.get("policy_number"),
-            status=e.get("status"),
+            status=int(st) if st is not None and str(st).isdigit() else None,
             start_date=_iso(e.get("start_date")),
             end_date=_iso(e.get("end_date")),
-            estate_id=e.get("estate_id"),
-            room_id=e.get("room_id"),
+            estate_id=int(eid) if eid is not None and str(eid).isdigit() else None,
+            room_id=int(rid) if rid is not None and str(rid).isdigit() else None,
             created_at=e.get("created_at"),
         ))
     return out
@@ -189,7 +200,7 @@ def estate_cost_documents(estate_id):
             payment_date=_iso(e.get("payment_date")),
             payment_date_raw=e.get("payment_date_raw"),
             download_zip_url=e.get("download_zip_url"),
-            cost_document_id=e.get("cost_document_id"),
+            cost_document_id=int(e.get("cost_document_id")) if e.get("cost_document_id") is not None and str(e.get("cost_document_id")).isdigit() else None,
         ))
     return out
 
