@@ -29,6 +29,16 @@ from lib.api_models import (
 app = FastAPI(title="SON Panel API", version="1.0.0")
 
 
+@app.middleware("http")
+async def log_requests(request, call_next):
+    import time
+    start = time.monotonic()
+    response = await call_next(request)
+    duration = (time.monotonic() - start) * 1000
+    logger.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, duration)
+    return response
+
+
 def _raise_panel_error(exc):
     if isinstance(exc, HTTPException):
         raise exc
