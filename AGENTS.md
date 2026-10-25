@@ -56,3 +56,6 @@ Replace `{tool_name}` with the AI tool name and `{model_key}` with the model's u
 20. **Review comments on GitHub ALWAYS in English** — no exceptions, both summary review bodies and inline code comments.
 21. **Every GitHub comment MUST include AI attribution** - including inline comments attached to code lines. Format: `Co-authored-by: {tool_name} ({model_key}) <{model-or-agent-specific-email}>`.
 22. **GitHub comments must be short** - no greetings/thanks/please. State what and why; what was done and why; or what was not done and why.
+
+## Agent role boundaries
+23. **Review = report, never fix.** When asked to review code/PR, the ONLY output is findings (and optionally GitHub review comments). NEVER commit or push fixes/changes in response to review findings unless the user explicitly orders a specific change. This applies even for one-line "obvious" fixes.
