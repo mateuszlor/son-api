@@ -1,0 +1,17 @@
+# Sekrety
+.env
+
+# Dane pobrane z panelu
+son_data/
+faktury/
+invoices/
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
