@@ -7,9 +7,14 @@ def safe_resolve(base_dir, relative_path):
     """Resolve relative_path under base_dir; return absolute path or None if unsafe."""
     if not relative_path:
         return None
+    # Reject absolute paths outright
+    if os.path.isabs(relative_path):
+        return None
     base = os.path.realpath(base_dir)
-    # Normalize separators and strip leading slashes
-    rel = relative_path.replace("\\", "/").lstrip("/")
+    rel = relative_path.replace("\\", "/")
+    if rel.startswith("/"):
+        return None
+    rel = rel.lstrip("/")
     candidate = os.path.realpath(os.path.join(base, rel))
     if candidate == base:
         return None
