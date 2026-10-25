@@ -65,10 +65,11 @@ def list_estates():
             ren = r.get("estate_is_under_renovation")
             if ren is not None and str(ren).isdigit():
                 r["estate_is_under_renovation"] = (str(ren) == "1")
-            for key in ("estate_manage_type", "estate_rental_type", "free_rooms_count"):
-                v = r.get(key)
-                if v is not None and str(v).isdigit():
-                    r[key] = int(v)
+            # free_rooms_count is a count -> int
+            v = r.get("free_rooms_count")
+            if v is not None and str(v).isdigit():
+                r["free_rooms_count"] = int(v)
+            # estate_manage_type / estate_rental_type: unknown enum codes, keep raw string
     return rows
 
 
