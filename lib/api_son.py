@@ -20,6 +20,8 @@ _client_lock = threading.Lock()
 _client = None
 _tenant_name_cache = None
 _tenant_name_cache_time = 0.0
+_tenants_cache = None
+_tenants_cache_time = 0.0
 _TENANT_CACHE_TTL = 300.0
 
 
@@ -65,6 +67,10 @@ def _to_bool(v):
 
 
 def list_tenants():
+    global _tenants_cache, _tenants_cache_time
+    now = time.monotonic()
+    if _tenants_cache is not None and (now - _tenants_cache_time) < _TENANT_CACHE_TTL:
+        return _tenants_cache
     client = get_client()
     with _panel_lock:
         rows = client.get_tenants()
@@ -82,6 +88,8 @@ def list_tenants():
             eah_owner_fullname=r.get("eah_owner_fullname"),
             tags=r.get("tags"),
         ))
+    _tenants_cache = out
+    _tenants_cache_time = now
     return out
 
 

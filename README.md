@@ -112,7 +112,6 @@ Configuration (.env):
 - `API_PORT` - port (default 8000)
 
 Payout detection is automatic (owner name from panel).
-- Docker: set `SON_OUT_DIR=/app/invoices` (named volume `son_data`)
 
 Local run:
 ```
@@ -124,3 +123,4 @@ Docker:
 ```
 docker compose up -d --build
 ```
+Note: container uses `SON_OUT_DIR=/app/invoices` (named volume `son_data`).
