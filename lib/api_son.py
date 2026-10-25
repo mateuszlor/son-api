@@ -15,17 +15,26 @@ from lib.api_models import (
 )
 
 
-_lock = threading.Lock()
+_panel_lock = threading.Lock()
+_client_lock = threading.Lock()
 _client = None
 _tenant_name_cache = None
+_tenant_name_cache_time = 0.0
+_TENANT_CACHE_TTL = 300.0
 
 
 def get_client():
     global _client
-    with _lock:
+    with _client_lock:
         if _client is None:
             _client = SONInternalClient()
         return _client
+
+
+def panel_ping():
+    client = get_client()
+    with _panel_lock:
+        client._get("/")
 
 
 def _iso(v):
@@ -45,9 +54,19 @@ def _to_int(v):
         return None
 
 
+def _to_bool(v):
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, int):
+        return v == 1
+    return str(v).strip().lower() in ("1", "true", "yes", "y")
+
+
 def list_tenants():
     client = get_client()
-    with _lock:
+    with _panel_lock:
         rows = client.get_tenants()
     out = []
     for r in rows:
@@ -57,7 +76,7 @@ def list_tenants():
             tenant_id=_to_int(tid) if _to_int(tid) is not None else tid,
             user_fullname=r.get("user_fullname") or "",
             address=r.get("address"),
-            user_active=(r.get("user_active") == "1") if r.get("user_active") is not None else None,
+            user_active=_to_bool(r.get("user_active")),
             user_balance=parse_pln(r.get("user_balance")),
             estate_id=_to_int(eid),
             eah_owner_fullname=r.get("eah_owner_fullname"),
@@ -68,7 +87,7 @@ def list_tenants():
 
 def list_estates():
     client = get_client()
-    with _lock:
+    with _panel_lock:
         rows = client.get_estates()
     out = []
     for r in rows:
@@ -82,31 +101,33 @@ def list_estates():
         out.append(EstateOut(
             address=r.get("address"),
             estate_code=r.get("estate_code"),
-            estate_is_under_renovation=(str(ren) == "1") if ren is not None and str(ren).isdigit() else None,
-            estate_manage_type=int(mt) if mt is not None and str(mt).isdigit() else None,
-            estate_id=int(eid) if eid is not None and str(eid).isdigit() else None,
+            estate_is_under_renovation=_to_bool(ren),
+            estate_manage_type=_to_int(mt),
+            estate_id=_to_int(eid),
             tags=r.get("tags"),
             estate_details=r.get("estate_details"),
-            estate_rental_type=int(rt) if rt is not None and str(rt).isdigit() else None,
-            rooms_accommodation=r.get("rooms_accommodation"),
-            free_rooms_count=int(fc) if fc is not None and str(fc).isdigit() else None,
-            row_class=r.get("row_class"),
+            estate_rental_type=_to_int(rt),
+            free_rooms_count=_to_int(fc),
         ))
     return out
 
 
+import time
+
 def _load_tenant_names():
-    global _tenant_name_cache
-    if _tenant_name_cache is not None:
+    global _tenant_name_cache, _tenant_name_cache_time
+    now = time.monotonic()
+    if _tenant_name_cache is not None and (now - _tenant_name_cache_time) < _TENANT_CACHE_TTL:
         return _tenant_name_cache
     try:
         rows = list_tenants()
     except Exception:
-        return {}
+        return _tenant_name_cache or {}
     cache = {}
     for t in rows:
         cache[str(t.tenant_id)] = t.user_fullname
     _tenant_name_cache = cache
+    _tenant_name_cache_time = now
     return cache
 
 
@@ -122,7 +143,7 @@ def _tenant_name(tenant_id):
 def tenant_operations(tenant_id):
     client = get_client()
     name = _tenant_name(tenant_id)
-    with _lock:
+    with _panel_lock:
         html = client.get_tenant_operations(tenant_id)
         parsed = client.parse_operations(html, int(tenant_id) if str(tenant_id).isdigit() else tenant_id, name or "")
     out = []
@@ -147,7 +168,7 @@ def tenant_operations(tenant_id):
 def tenant_liabilities(tenant_id):
     client = get_client()
     name = _tenant_name(tenant_id)
-    with _lock:
+    with _panel_lock:
         html = client.get_tenant_liabilities(tenant_id)
         parsed = client.parse_liabilities(html, int(tenant_id) if str(tenant_id).isdigit() else tenant_id, name or "")
     out = []
@@ -169,7 +190,7 @@ def tenant_liabilities(tenant_id):
 def tenant_insurances(tenant_id):
     client = get_client()
     name = _tenant_name(tenant_id)
-    with _lock:
+    with _panel_lock:
         data = client.get_insurances(tenant_id)
         parsed = client.parse_insurances(data, int(tenant_id) if str(tenant_id).isdigit() else tenant_id, name or "")
     out = []
@@ -192,7 +213,7 @@ def tenant_insurances(tenant_id):
 
 def finances():
     client = get_client()
-    with _lock:
+    with _panel_lock:
         html = client.get_finances()
         parsed = client.parse_finances(html)
     out = []
@@ -215,7 +236,7 @@ def finances():
 def estate_cost_documents(estate_id):
     client = get_client()
     owner_name = os.getenv("SON_OWNER_NAME")
-    with _lock:
+    with _panel_lock:
         html = client.get_estate_cost_documents(estate_id)
         parsed = client.parse_estate_cost_documents(html, owner_name)
     out = []

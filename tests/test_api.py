@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -10,12 +11,9 @@ class TestApiSmoke(unittest.TestCase):
         self.client = TestClient(app)
 
     def test_health(self):
-        r = self.client.get("/health")
-        self.assertIn(r.status_code, (200, 503))
-        if r.status_code == 200:
-            data = r.json()
-            self.assertEqual(data["status"], "ok")
-            self.assertIn("son_connected", data)
+        with patch("lib.api_son.get_client", side_effect=RuntimeError("no panel")):
+            r = self.client.get("/health")
+        self.assertEqual(r.status_code, 503)
 
     def test_health_live(self):
         r = self.client.get("/health/live")
@@ -23,8 +21,9 @@ class TestApiSmoke(unittest.TestCase):
         self.assertEqual(r.json()["status"], "ok")
 
     def test_health_ready(self):
-        r = self.client.get("/health/ready")
-        self.assertIn(r.status_code, (200, 503))
+        with patch("lib.api_son.panel_ping", side_effect=RuntimeError("no panel")):
+            r = self.client.get("/health/ready")
+        self.assertEqual(r.status_code, 503)
 
     def test_docs(self):
         r = self.client.get("/docs")

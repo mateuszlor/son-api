@@ -26,12 +26,26 @@ from lib.api_models import (
 app = FastAPI(title="SON Panel API", version="1.0.0")
 
 
+def _raise_panel_error(exc):
+    status = 502
+    resp = getattr(exc, "response", None)
+    if resp is not None:
+        code = getattr(resp, "status_code", None)
+        if code == 404:
+            status = 404
+        elif isinstance(code, int) and code >= 500:
+            status = 502
+    elif "404" in str(exc):
+        status = 404
+    raise HTTPException(status_code=status, detail="SON panel error") from exc
+
+
 @app.get("/health", response_model=HealthOut)
 @app.get("/health/ready", response_model=HealthOut)
 def health_ready():
     try:
-        from lib.api_son import get_client
-        get_client()
+        from lib.api_son import panel_ping
+        panel_ping()
         return HealthOut(status="ok", son_connected=True)
     except Exception:
         raise HTTPException(status_code=503, detail="SON panel unavailable")
@@ -47,7 +61,7 @@ def get_tenants():
     try:
         return list_tenants()
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/estates", response_model=list[EstateOut])
@@ -55,7 +69,7 @@ def get_estates():
     try:
         return list_estates()
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/tenants/{tenant_id}/operations", response_model=list[OperationOut])
@@ -63,7 +77,7 @@ def get_tenant_operations(tenant_id: int):
     try:
         return tenant_operations(tenant_id)
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/tenants/{tenant_id}/liabilities", response_model=list[LiabilityOut])
@@ -71,7 +85,7 @@ def get_tenant_liabilities(tenant_id: int):
     try:
         return tenant_liabilities(tenant_id)
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/tenants/{tenant_id}/insurances", response_model=list[InsuranceOut])
@@ -79,7 +93,7 @@ def get_tenant_insurances(tenant_id: int):
     try:
         return tenant_insurances(tenant_id)
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/finances", response_model=list[FinanceOut])
@@ -87,7 +101,7 @@ def get_finances():
     try:
         return finances()
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/estates/{estate_id}/cost-documents", response_model=list[CostDocumentOut])
@@ -95,7 +109,7 @@ def get_estate_cost_documents(estate_id: int):
     try:
         return estate_cost_documents(estate_id)
     except Exception as e:
-        raise HTTPException(status_code=502, detail="SON panel error")
+        _raise_panel_error(e)
 
 
 @app.get("/v1/artifacts/{path:path}")

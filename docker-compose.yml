@@ -2,7 +2,7 @@ services:
   son-api:
     build: .
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=${API_PORT:-8000}

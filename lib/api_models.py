@@ -1,6 +1,6 @@
 """Pydantic models for SON REST API responses."""
 
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -96,9 +96,7 @@ class EstateOut(BaseModel):
     tags: Optional[str] = None
     estate_details: Optional[str] = None
     estate_rental_type: Optional[int] = None
-    rooms_accommodation: Optional[str] = None
     free_rooms_count: Optional[int] = None
-    row_class: Optional[str] = None
 
 
 class HealthOut(BaseModel):
