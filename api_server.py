@@ -11,6 +11,8 @@ Docs:
 import os
 import logging
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
