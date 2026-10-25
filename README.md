@@ -106,7 +106,7 @@ See `docs/` for detailed documentation:
 Configuration (.env):
 - Required: `SON_LOGIN`, `SON_PASSWORD`, `SON_PANEL_URL`, `SON_OUT_DIR`
 - Optional: `API_HOST` (default 127.0.0.1), `API_PORT` (default 8000)
-- Docker: set `OUT_DIR=/app/invoices` (named volume `son_data`)
+- Docker: set `SON_OUT_DIR=/app/invoices` (named volume `son_data`)
 
 Local run:
 ```

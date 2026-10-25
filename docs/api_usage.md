@@ -13,8 +13,8 @@ Optional (API/Docker):
 - `API_PORT` - port (default 8000)
 
 Notes:
-- `.env` is not copied into the Docker image; use `env_file` in compose.
-- In Docker set `OUT_DIR=/app/invoices` (named volume `son_data`).
+- `.env` is not copied into the Docker image; it is bind-mounted as `/app/.env`.
+- In Docker set `SON_OUT_DIR=/app/invoices` (named volume `son_data`).
 
 ## Run locally
 

@@ -70,6 +70,7 @@ class FinanceOut(BaseModel):
 
 
 class CostDocumentOut(BaseModel):
+    estate_id: Optional[int] = None
     date_added: Optional[str] = None
     date_added_raw: Optional[str] = None
     sale_date: Optional[str] = None
@@ -84,6 +85,20 @@ class CostDocumentOut(BaseModel):
     payment_date_raw: Optional[str] = None
     download_zip_url: Optional[str] = None
     cost_document_id: Optional[int] = None
+
+
+class EstateOut(BaseModel):
+    address: Optional[str] = None
+    estate_code: Optional[str] = None
+    estate_is_under_renovation: Optional[bool] = None
+    estate_manage_type: Optional[int] = None
+    estate_id: Optional[int] = None
+    tags: Optional[str] = None
+    estate_details: Optional[str] = None
+    estate_rental_type: Optional[int] = None
+    rooms_accommodation: Optional[str] = None
+    free_rooms_count: Optional[int] = None
+    row_class: Optional[str] = None
 
 
 class HealthOut(BaseModel):
