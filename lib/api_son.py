@@ -233,6 +233,10 @@ def finances():
     return out
 
 
+def estate_payouts(estate_id):
+    return [d for d in estate_cost_documents(estate_id) if d.is_payout]
+
+
 def estate_cost_documents(estate_id):
     client = get_client()
     owner_name = None

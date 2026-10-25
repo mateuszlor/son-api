@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse
 
 from lib.api_son import (
     list_tenants, list_estates, tenant_operations, tenant_liabilities,
-    tenant_insurances, finances, estate_cost_documents, out_dir,
+    tenant_insurances, finances, estate_cost_documents, estate_payouts, out_dir,
 )
 from lib.path_safety import safe_resolve
 from lib.api_models import (
@@ -108,6 +108,14 @@ def get_finances():
 def get_estate_cost_documents(estate_id: int):
     try:
         return estate_cost_documents(estate_id)
+    except Exception as e:
+        _raise_panel_error(e)
+
+
+@app.get("/v1/estates/{estate_id}/payouts", response_model=list[CostDocumentOut])
+def get_estate_payouts(estate_id: int):
+    try:
+        return estate_payouts(estate_id)
     except Exception as e:
         _raise_panel_error(e)
 
