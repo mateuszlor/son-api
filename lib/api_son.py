@@ -42,7 +42,7 @@ def list_tenants():
             tenant_id=str(r.get("tenant_id")),
             user_fullname=r.get("user_fullname") or "",
             address=r.get("address"),
-            user_active=r.get("user_active"),
+            user_active=(r.get("user_active") == "1") if r.get("user_active") is not None else None,
             user_balance=r.get("user_balance"),
             estate_id=r.get("estate_id"),
             eah_owner_fullname=r.get("eah_owner_fullname"),

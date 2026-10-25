@@ -8,7 +8,7 @@ class TenantOut(BaseModel):
     tenant_id: str
     user_fullname: str
     address: Optional[str] = None
-    user_active: Optional[str] = None
+    user_active: Optional[bool] = None
     user_balance: Optional[str] = None
     estate_id: Optional[str] = None
     eah_owner_fullname: Optional[str] = None
