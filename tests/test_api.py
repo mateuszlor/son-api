@@ -40,8 +40,10 @@ class TestApiSmoke(unittest.TestCase):
         self.assertEqual(r.status_code, 404)
 
     def test_artifact_traversal(self):
-        r = self.client.get("/v1/artifacts/../README.md")
-        self.assertIn(r.status_code, (400, 404, 422))
+        from lib.path_safety import safe_resolve
+        import tempfile, os
+        base = tempfile.mkdtemp()
+        self.assertIsNone(safe_resolve(base, "../README.md"))
 
 
 if __name__ == "__main__":

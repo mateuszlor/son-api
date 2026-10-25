@@ -110,7 +110,7 @@ def main():
     import uvicorn
     host = os.getenv("API_HOST", "127.0.0.1")
     port = int(os.getenv("API_PORT", "8000"))
-    uvicorn.run("api_server:app", host=host, port=port, reload=False)
+    uvicorn.run(app, host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":
