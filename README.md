@@ -103,11 +103,11 @@ See `docs/` for detailed documentation:
 
 ## API (REST)
 
-Uruchomienie lokalne:
+Local run:
 ```
 python api_server.py
 ```
-Dokumentacja OpenAPI: `http://127.0.0.1:8000/docs`
+OpenAPI docs: `http://127.0.0.1:8000/docs`
 
 Docker:
 ```
