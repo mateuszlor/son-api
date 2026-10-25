@@ -235,7 +235,15 @@ def finances():
 
 def estate_cost_documents(estate_id):
     client = get_client()
-    owner_name = os.getenv("SON_OWNER_NAME")
+    owner_name = None
+    try:
+        tenants = list_tenants()
+        for t in tenants:
+            if getattr(t, "eah_owner_fullname", None):
+                owner_name = t.eah_owner_fullname
+                break
+    except Exception:
+        owner_name = None
     with _panel_lock:
         html = client.get_estate_cost_documents(estate_id)
         parsed = client.parse_estate_cost_documents(html, owner_name)

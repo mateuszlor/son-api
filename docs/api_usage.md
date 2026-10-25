@@ -2,18 +2,15 @@
 
 ## Configuration (.env)
 
-Required (existing):
+Configuration (.env):
 - `SON_LOGIN` - SON panel login (email)
 - `SON_PASSWORD` - SON panel password
 - `SON_PANEL_URL` - panel URL (e.g. https://your-panel.example.com)
-
-Optional (existing):
 - `SON_OUT_DIR` - output directory (default ./invoices)
-- `SON_OWNER_NAME` - owner name for payout detection
-
-Optional (API/Docker):
 - `API_HOST` - bind host (default 127.0.0.1; use 0.0.0.0 in Docker)
 - `API_PORT` - port (default 8000)
+
+Payout detection is automatic (owner name from panel).
 
 Notes:
 - `.env` is not copied into the Docker image; it is bind-mounted as `/app/.env`.

@@ -104,8 +104,14 @@ See `docs/` for detailed documentation:
 ## API (REST)
 
 Configuration (.env):
-- Required: `SON_LOGIN`, `SON_PASSWORD`, `SON_PANEL_URL`
-- Optional: `SON_OUT_DIR` (default ./invoices), `SON_OWNER_NAME` (for payout detection), `API_HOST` (default 127.0.0.1), `API_PORT` (default 8000)
+- `SON_LOGIN` - SON panel login (email)
+- `SON_PASSWORD` - SON panel password
+- `SON_PANEL_URL` - panel URL (e.g. https://your-panel.example.com)
+- `SON_OUT_DIR` - output directory (default ./invoices)
+- `API_HOST` - bind host (default 127.0.0.1)
+- `API_PORT` - port (default 8000)
+
+Payout detection is automatic (owner name from panel).
 - Docker: set `SON_OUT_DIR=/app/invoices` (named volume `son_data`)
 
 Local run:
