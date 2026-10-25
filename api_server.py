@@ -25,7 +25,7 @@ from lib.api_son import (
 from lib.path_safety import safe_resolve
 from lib.api_models import (
     TenantOut, OperationOut, LiabilityOut, InsuranceOut, FinanceOut,
-    CostDocumentOut, HealthOut, EstateOut,
+    CostDocumentOut, HealthOut, EstateOut, LiveOut,
 )
 
 app = FastAPI(title="SON Panel API", version="1.0.0")
@@ -35,25 +35,33 @@ app = FastAPI(title="SON Panel API", version="1.0.0")
 async def log_requests(request, call_next):
     import time
     start = time.monotonic()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration = (time.monotonic() - start) * 1000
+        if not request.url.path.startswith("/health"):
+            logger.exception("%s %s -> 500 (%.0f ms)", request.method, request.url.path, duration)
+        raise
     duration = (time.monotonic() - start) * 1000
-    logger.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, duration)
+    if not request.url.path.startswith("/health"):
+        logger.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, duration)
     return response
 
 
 def _raise_panel_error(exc):
     if isinstance(exc, HTTPException):
         raise exc
+    import requests
     resp = getattr(exc, "response", None)
     if resp is not None:
         code = getattr(resp, "status_code", None)
         status = 404 if code == 404 else 502
+    elif isinstance(exc, (requests.Timeout, requests.ConnectionError)):
+        status = 502
+    elif isinstance(exc, RuntimeError):
+        status = 502
     else:
-        msg = str(exc).lower()
-        if any(k in msg for k in ("login failed", "csrf", "max retries", "logged in but")):
-            status = 502
-        else:
-            status = 500
+        status = 500
     logger.exception("SON panel error")
     raise HTTPException(status_code=status, detail="SON panel error") from exc
 
@@ -69,9 +77,9 @@ def health_ready():
         raise HTTPException(status_code=503, detail="SON panel unavailable")
 
 
-@app.get("/health/live")
+@app.get("/health/live", response_model=LiveOut)
 def health_live():
-    return {"status": "ok"}
+    return LiveOut(status="ok")
 
 
 @app.get("/v1/tenants", response_model=list[TenantOut])

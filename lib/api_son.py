@@ -100,13 +100,13 @@ def list_estates():
         rt = r.get("estate_rental_type")
         out.append(EstateOut(
             address=r.get("address"),
-            estate_code=r.get("estate_code"),
             estate_is_under_renovation=_to_bool(ren),
             estate_manage_type=_to_int(mt),
             estate_id=_to_int(eid),
             tags=r.get("tags"),
             estate_details=r.get("estate_details"),
             estate_rental_type=_to_int(rt),
+            rooms_accommodation=r.get("rooms_accommodation"),
             free_rooms_count=_to_int(fc),
         ))
     return out

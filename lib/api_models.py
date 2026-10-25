@@ -83,14 +83,18 @@ class CostDocumentOut(BaseModel):
 
 class EstateOut(BaseModel):
     address: Optional[str] = None
-    estate_code: Optional[str] = None
     estate_is_under_renovation: Optional[bool] = None
     estate_manage_type: Optional[int] = None
     estate_id: Optional[int] = None
     tags: Optional[str] = None
     estate_details: Optional[str] = None
     estate_rental_type: Optional[int] = None
+    rooms_accommodation: Optional[str] = None
     free_rooms_count: Optional[int] = None
+
+
+class LiveOut(BaseModel):
+    status: str
 
 
 class HealthOut(BaseModel):
