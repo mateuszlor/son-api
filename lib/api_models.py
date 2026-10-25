@@ -20,7 +20,6 @@ class OperationOut(BaseModel):
     tenant_name: Optional[str] = None
     type: Optional[str] = None
     date: Optional[str] = None
-    date_raw: Optional[str] = None
     income: Optional[float] = None
     expense: Optional[float] = None
     balance: Optional[float] = None
@@ -59,7 +58,6 @@ class InsuranceOut(BaseModel):
 class FinanceOut(BaseModel):
     type: Optional[str] = None
     date: Optional[str] = None
-    date_raw: Optional[str] = None
     payment: Optional[float] = None
     charge: Optional[float] = None
     balance: Optional[float] = None
@@ -72,17 +70,13 @@ class FinanceOut(BaseModel):
 class CostDocumentOut(BaseModel):
     estate_id: Optional[int] = None
     date_added: Optional[str] = None
-    date_added_raw: Optional[str] = None
     sale_date: Optional[str] = None
-    sale_date_raw: Optional[str] = None
     seller: Optional[str] = None
     is_payout: Optional[bool] = None
     number: Optional[str] = None
     amount: Optional[float] = None
     payment_deadline: Optional[str] = None
-    payment_deadline_raw: Optional[str] = None
     payment_date: Optional[str] = None
-    payment_date_raw: Optional[str] = None
     download_zip_url: Optional[str] = None
     cost_document_id: Optional[int] = None
 

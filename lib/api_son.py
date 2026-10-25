@@ -153,7 +153,6 @@ def tenant_operations(tenant_id):
             tenant_name=e.get("tenant_name"),
             type=e.get("type"),
             date=_iso(e.get("date")),
-            date_raw=e.get("date_raw"),
             income=e.get("income"),
             expense=e.get("expense"),
             balance=e.get("balance"),
@@ -221,7 +220,6 @@ def finances():
         out.append(FinanceOut(
             type=e.get("type"),
             date=_iso(e.get("date")),
-            date_raw=e.get("date_raw"),
             payment=e.get("payment"),
             charge=e.get("charge"),
             balance=e.get("balance"),
@@ -256,17 +254,13 @@ def estate_cost_documents(estate_id):
         out.append(CostDocumentOut(
             estate_id=int(estate_id) if estate_id is not None and str(estate_id).isdigit() else None,
             date_added=_iso(e.get("date_added")),
-            date_added_raw=e.get("date_added_raw"),
             sale_date=_iso(e.get("sale_date")),
-            sale_date_raw=e.get("sale_date_raw"),
             seller=e.get("seller"),
             is_payout=e.get("is_payout"),
             number=e.get("number"),
             amount=e.get("amount"),
             payment_deadline=_iso(e.get("payment_deadline")),
-            payment_deadline_raw=e.get("payment_deadline_raw"),
             payment_date=_iso(e.get("payment_date")),
-            payment_date_raw=e.get("payment_date_raw"),
             download_zip_url=e.get("download_zip_url"),
             cost_document_id=_to_int(e.get("cost_document_id")),
         ))
