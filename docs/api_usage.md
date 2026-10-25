@@ -1,5 +1,21 @@
 # SON Panel REST API - usage
 
+## Configuration (.env)
+
+Required (existing):
+- `SON_LOGIN` - SON panel login (email)
+- `SON_PASSWORD` - SON panel password
+- `SON_PANEL_URL` - panel URL (e.g. https://your-panel.example.com)
+- `SON_OUT_DIR` - output directory (default ./invoices)
+
+Optional (API/Docker):
+- `API_HOST` - bind host (default 127.0.0.1; use 0.0.0.0 in Docker)
+- `API_PORT` - port (default 8000)
+
+Notes:
+- `.env` is not copied into the Docker image; use `env_file` in compose.
+- In Docker set `OUT_DIR=/app/invoices` (named volume `son_data`).
+
 ## Run locally
 
 ```
