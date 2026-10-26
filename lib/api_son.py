@@ -9,6 +9,7 @@ import re
 import json
 import time
 import tempfile
+import logging
 import threading
 from dataclasses import dataclass
 from datetime import date
@@ -23,6 +24,7 @@ from lib.api_models import (
 
 
 _panel_lock = threading.Lock()
+logger = logging.getLogger("son_api")
 _client_lock = threading.Lock()
 _client = None
 _tenants_raw_cache = None
@@ -361,45 +363,58 @@ def _compute_latest(types=None):
     payout_date = None
     payout_eid = None
 
+    client = get_client()
+
+    tenants_ok = False
+    tenant_ops_ok = False
+    finances_ok = False
+    estates_ok = False
+    cost_docs_ok = False
+
     # tenants
     try:
         raw_tenants = _get_raw_tenants()
+        tenants_ok = True
     except Exception as e:
-        warnings.append(f"tenants: {e}")
+        logger.exception("tenants fetch failed")
+        warnings.append("tenants: upstream error")
         raw_tenants = []
     active_tenants = [t for t in raw_tenants if _to_bool(t.get("user_active"))]
 
     owner_names = {t.get("eah_owner_fullname") for t in raw_tenants if t.get("eah_owner_fullname")}
-    if "payout" in types_set and not owner_names:
+    if "payout" in types_set and not owner_names and tenants_ok:
         warnings.append("no owner names found in tenants")
-
-    client = get_client()
 
     # income_invoice + payment (wpłata) from tenant operations
     if "income_invoice" in types_set or "payment" in types_set:
-        for t in active_tenants:
-            tid = t.get("tenant_id")
-            name = t.get("user_fullname") or ""
-            try:
-                with _panel_lock:
-                    html = client.get_tenant_operations(tid)
-                    ops = client.parse_operations(html, int(tid) if str(tid).isdigit() else tid, name)
-            except Exception as e:
-                warnings.append(f"tenant {tid} operations: {e}")
-                continue
-            for op in ops:
-                d = op.get("date")
-                if d is None:
+        if active_tenants:
+            for t in active_tenants:
+                tid = t.get("tenant_id")
+                name = t.get("user_fullname") or ""
+                try:
+                    with _panel_lock:
+                        html = client.get_tenant_operations(tid)
+                        ops = client.parse_operations(html, _to_int(tid) if _to_int(tid) is not None else tid, name)
+                    tenant_ops_ok = True
+                except Exception as e:
+                    logger.exception("tenant %s operations failed", tid)
+                    warnings.append(f"tenant {tid} operations: upstream error")
                     continue
-                typ = op.get("type")
-                if "income_invoice" in types_set and typ in ("FV", "KR"):
-                    if income_date is None or d > income_date:
-                        income_date = d
-                        income_raw = op
-                if "payment" in types_set and op.get("income") is not None and typ not in ("FV", "KR"):
-                    if payment_date is None or d > payment_date:
-                        payment_date = d
-                        payment_raw = op
+                for op in ops:
+                    d = op.get("date")
+                    if d is None:
+                        continue
+                    typ = op.get("type")
+                    if "income_invoice" in types_set and typ in ("FV", "KR"):
+                        if income_date is None or d > income_date:
+                            income_date = d
+                            income_raw = op
+                    if "payment" in types_set and op.get("income") is not None and typ not in ("FV", "KR"):
+                        if payment_date is None or d > payment_date:
+                            payment_date = d
+                            payment_raw = op
+        else:
+            tenant_ops_ok = True
 
     # cost_invoice from owner finances
     if "cost_invoice" in types_set:
@@ -407,6 +422,7 @@ def _compute_latest(types=None):
             with _panel_lock:
                 html = client.get_finances(page_size=100)
                 fins = client.parse_finances(html)
+            finances_ok = True
             for fin in fins:
                 if fin.get("type") in ("FV", "KR") and fin.get("pdf_url"):
                     d = fin.get("date")
@@ -416,13 +432,17 @@ def _compute_latest(types=None):
                         cost_date = d
                         cost_raw = fin
         except Exception as e:
-            warnings.append(f"finances: {e}")
+            logger.exception("finances fetch failed")
+            warnings.append("finances: upstream error")
 
+    estates_list = []
     # payout across all estates
     if "payout" in types_set:
         try:
             with _panel_lock:
                 estates = client.get_estates()
+            estates_list = estates
+            estates_ok = True
             for est in estates:
                 eid = est.get("estate_id")
                 if not eid:
@@ -431,8 +451,10 @@ def _compute_latest(types=None):
                     with _panel_lock:
                         html = client.get_estate_cost_documents(eid)
                         cds = client.parse_estate_cost_documents(html, owner_name=None)
+                    cost_docs_ok = True
                 except Exception as e:
-                    warnings.append(f"estate {eid} cost documents: {e}")
+                    logger.exception("estate %s cost documents failed", eid)
+                    warnings.append(f"estate {eid} cost documents: upstream error")
                     continue
                 for cd in cds:
                     seller = cd.get("seller") or ""
@@ -456,12 +478,38 @@ def _compute_latest(types=None):
                             pdf_url = client.get_cost_document_download_url(cd_id)
                         payout_raw["pdf_url"] = pdf_url
                     except Exception as e:
-                        warnings.append(f"payout pdf url: {e}")
+                        logger.exception("payout pdf url failed")
+                        warnings.append("payout pdf url: upstream error")
                         payout_raw["pdf_url"] = None
                 payout_raw["estate_id"] = payout_eid
                 payout_raw["is_payout"] = True
         except Exception as e:
-            warnings.append(f"estates: {e}")
+            logger.exception("estates fetch failed")
+            warnings.append("estates: upstream error")
+
+    # Total failure check: if a requested source was attempted and none succeeded, raise.
+    total_failure = False
+    if "income_invoice" in types_set or "payment" in types_set:
+        if active_tenants and not tenant_ops_ok:
+            total_failure = True
+        if not tenants_ok and active_tenants is not None:
+            # tenants fetch itself failed
+            total_failure = True
+    if "cost_invoice" in types_set:
+        if not finances_ok and "cost_invoice" in types_set:
+            # finances attempted
+            total_failure = True
+    if "payout" in types_set:
+        if not estates_ok:
+            total_failure = True
+        if estates_ok and estates_list and not cost_docs_ok:
+            total_failure = True
+    # tenants fetch failure also counts
+    if not tenants_ok and ("income_invoice" in types_set or "payment" in types_set or "payout" in types_set):
+        total_failure = True
+
+    if total_failure:
+        raise RuntimeError("all upstream sources failed")
 
     # convert to models
     income_model = None
@@ -576,9 +624,6 @@ def download_latest(types=None, force=False):
     # /v1/latest/download calls cannot lose updates or clobber the state file.
     with _state_lock:
         state = _load_state()
-        # Snapshot the loaded state so we can tell whether it actually changed
-        # (new entries appended / structure normalized) before reporting it.
-        state_before = json.dumps(state, sort_keys=True, default=str)
         tenant_key = "all"
         try:
             raw_tenants = _get_raw_tenants()
@@ -594,6 +639,8 @@ def download_latest(types=None, force=False):
         if not isinstance(known, list):
             known = []
             state[tenant_key] = known
+        # Snapshot after normalization so a no-op call does not report an update.
+        state_before = json.dumps(state, sort_keys=True, default=str)
 
         entries = [
             ("income_invoice", c.income_model, None, "income_invoice"),
