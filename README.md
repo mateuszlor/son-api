@@ -113,6 +113,10 @@ Configuration (.env):
 
 Payout detection is automatic (owner name from panel).
 
+Latest invoices (REST):
+- `GET /v1/latest` - computes the latest 4 entries (income invoice, cost invoice, payout, payment) without downloading PDFs.
+- `POST /v1/latest/download` - computes the same entries, downloads PDFs, updates `known_invoices.json`, returns download statuses.
+
 Local run:
 ```
 python api_server.py
