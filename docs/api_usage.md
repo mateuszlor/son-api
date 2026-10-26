@@ -1,6 +1,6 @@
 # SON Panel REST API - usage
 
-## Configuration (.env)
+## Configuration (environment variables)
 
 - `SON_LOGIN` - SON panel login (email)
 - `SON_PASSWORD` - SON panel password
@@ -12,7 +12,7 @@
 Payout detection is automatic (owner name from panel).
 
 Notes:
-- `.env` is not copied into the Docker image; it is bind-mounted as `/app/.env`.
+- Configuration comes from environment variables. In Docker they are injected by compose (see below); no `.env` file is copied or mounted into the image.
 - In Docker set `SON_OUT_DIR=/app/invoices` (named volume `son_data`).
 
 ## Endpoints
@@ -64,6 +64,10 @@ Invoke-WebRequest http://127.0.0.1:8000/v1/artifacts/operations.csv -OutFile ope
 
 ## Docker
 
-```
+```sh
 docker compose up -d --build
 ```
+
+All configuration is passed through environment variables in `docker-compose.yml`
+(`SON_PANEL_URL`, `SON_LOGIN`, `SON_PASSWORD`, `API_PORT`, ...). The host environment
+provides the values; the container no longer reads or mounts a `.env` file.

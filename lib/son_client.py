@@ -16,32 +16,13 @@ from datetime import datetime, date
 from bs4 import BeautifulSoup
 import requests
 
-# Load variables from .env file (if exists)
-_env_loaded = False
+# Optional local-dev convenience: load .env if present, but never override
+# already-defined environment variables (12-factor: env wins).
 try:
     from dotenv import load_dotenv
-    load_dotenv()
-    _env_loaded = True
+    load_dotenv(override=False)
 except ImportError:
     pass
-
-if not _env_loaded:
-    # Manual .env parser (no external dependencies)
-    _env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-    if not os.path.exists(_env_path):
-        _env_path = ".env"
-    if os.path.exists(_env_path):
-        with open(_env_path, encoding="utf-8") as _f:
-            for _line in _f:
-                _line = _line.strip()
-                if not _line or _line.startswith("#"):
-                    continue
-                if "=" in _line:
-                    _key, _val = _line.split("=", 1)
-                    _key = _key.strip()
-                    _val = _val.strip().strip('"').strip("'")
-                    if _key and _key not in os.environ:
-                        os.environ[_key] = _val
 
 BASE = os.getenv("SON_PANEL_URL")
 if BASE:
