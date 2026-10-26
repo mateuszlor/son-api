@@ -365,21 +365,28 @@ def _compute_latest(types=None):
 
     client = get_client()
 
-    tenants_ok = False
-    tenant_ops_ok = False
-    finances_ok = False
-    estates_ok = False
-    cost_docs_ok = False
+    tenants_ok = True
+    tenant_ops_ok = True
+    finances_ok = True
+    estates_ok = True
+    cost_docs_ok = True
+
+    need_tenants = ("income_invoice" in types_set or "payment" in types_set or "payout" in types_set)
 
     # tenants
-    try:
-        raw_tenants = _get_raw_tenants()
-        tenants_ok = True
-    except Exception as e:
-        logger.exception("tenants fetch failed")
-        warnings.append("tenants: upstream error")
-        raw_tenants = []
-    active_tenants = [t for t in raw_tenants if _to_bool(t.get("user_active"))]
+    raw_tenants = []
+    active_tenants = []
+    if need_tenants:
+        tenants_ok = False
+        tenant_ops_ok = False
+        try:
+            raw_tenants = _get_raw_tenants()
+            tenants_ok = True
+        except Exception as e:
+            logger.exception("tenants fetch failed")
+            warnings.append("tenants: upstream error")
+            raw_tenants = []
+        active_tenants = [t for t in raw_tenants if _to_bool(t.get("user_active"))]
 
     owner_names = {t.get("eah_owner_fullname") for t in raw_tenants if t.get("eah_owner_fullname")}
     if "payout" in types_set and not owner_names and tenants_ok:
@@ -487,28 +494,22 @@ def _compute_latest(types=None):
             logger.exception("estates fetch failed")
             warnings.append("estates: upstream error")
 
-    # Total failure check: if a requested source was attempted and none succeeded, raise.
-    total_failure = False
+    # Total failure check: raise only if ALL requested sources failed.
+    requested_sources = []
+    source_ok = []
     if "income_invoice" in types_set or "payment" in types_set:
-        if active_tenants and not tenant_ops_ok:
-            total_failure = True
-        if not tenants_ok and active_tenants is not None:
-            # tenants fetch itself failed
-            total_failure = True
+        requested_sources.append("tenant")
+        tenant_source_ok = tenants_ok and (not active_tenants or tenant_ops_ok)
+        source_ok.append(tenant_source_ok)
     if "cost_invoice" in types_set:
-        if not finances_ok and "cost_invoice" in types_set:
-            # finances attempted
-            total_failure = True
+        requested_sources.append("cost")
+        source_ok.append(finances_ok)
     if "payout" in types_set:
-        if not estates_ok:
-            total_failure = True
-        if estates_ok and estates_list and not cost_docs_ok:
-            total_failure = True
-    # tenants fetch failure also counts
-    if not tenants_ok and ("income_invoice" in types_set or "payment" in types_set or "payout" in types_set):
-        total_failure = True
+        requested_sources.append("payout")
+        payout_source_ok = estates_ok and (not estates_list or cost_docs_ok)
+        source_ok.append(payout_source_ok)
 
-    if total_failure:
+    if requested_sources and not any(source_ok):
         raise RuntimeError("all upstream sources failed")
 
     # convert to models
