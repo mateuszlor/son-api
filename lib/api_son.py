@@ -710,9 +710,10 @@ def download_latest(types=None, force=False):
                     with _panel_lock:
                         ok = client.download_file(pdf_url, dest)
                 except Exception as e:
-                    c.warnings.append(f"{kind} download: {e}")
+                    logger.exception("%s download failed", kind)
+                    c.warnings.append(f"{kind} download: upstream error")
                     ok = False
-                    error = str(e)
+                    error = "download failed"
                 if not ok:
                     if error is None:
                         error = "download failed"
@@ -744,7 +745,8 @@ def download_latest(types=None, force=False):
                 _save_state(state)
                 state_updated = True
             except Exception as e:
-                c.warnings.append(f"state save: {e}")
+                logger.exception("state save failed")
+                c.warnings.append("state save: upstream error")
 
     return LatestDownloadOut(
         income_invoice=c.income_model,
