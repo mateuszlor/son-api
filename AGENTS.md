@@ -59,3 +59,6 @@ Replace `{tool_name}` with the AI tool name and `{model_key}` with the model's u
 
 ## Agent role boundaries
 23. **Review = report, never fix.** When asked to review code/PR, the ONLY output is findings (and optionally GitHub review comments). NEVER commit or push fixes/changes in response to review findings unless the user explicitly orders a specific change. This applies even for one-line "obvious" fixes.
+
+## Verification
+24. **Never claim PR status without verification.** Before stating that a PR is open/up-to-date/merged, run `gh pr view <n>` and compare `headRefOid` with local `HEAD`. No assumptions.
