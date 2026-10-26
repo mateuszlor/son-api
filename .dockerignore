@@ -1,0 +1,8 @@
+.env
+invoices/
+son_data/
+__pycache__/
+*.pyc
+.git/
+docs/
+*.pdf

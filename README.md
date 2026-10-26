@@ -99,4 +99,28 @@ See `docs/` for detailed documentation:
 - `complete_endpoint_documentation.md` — all 52 panel endpoints
 - `son_integration_models.md` — data models (Python + TypeScript)
 - `automation_flow.md` — flow diagrams (Mermaid, validated)
-- `system_analysis_and_automation_plan.md` — system analysis + automation plan
+- `system_analysis_and_automation_plan.md` - system analysis + automation plan
+
+## API (REST)
+
+Configuration (.env):
+- `SON_LOGIN` - SON panel login (email)
+- `SON_PASSWORD` - SON panel password
+- `SON_PANEL_URL` - panel URL (e.g. https://your-panel.example.com)
+- `SON_OUT_DIR` - output directory (default ./invoices)
+- `API_HOST` - bind host (default 127.0.0.1)
+- `API_PORT` - port (default 8000)
+
+Payout detection is automatic (owner name from panel).
+
+Local run:
+```
+python api_server.py
+```
+OpenAPI docs: `http://127.0.0.1:8000/docs`
+
+Docker:
+```
+docker compose up -d --build
+```
+Note: container uses `SON_OUT_DIR=/app/invoices` (named volume `son_data`).
