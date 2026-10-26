@@ -1,0 +1,23 @@
+name: Guardrails
+
+on:
+  pull_request:
+
+jobs:
+  attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify AI attribution in commits
+        run: |
+          set -e
+          missing=0
+          for sha in $(git rev-list origin/${{ github.base_ref }}..HEAD); do
+            if ! git log -1 --format=%B "$sha" | grep -q "Co-authored-by:"; then
+              echo "Missing AI attribution in commit $sha"
+              missing=1
+            fi
+          done
+          exit $missing
