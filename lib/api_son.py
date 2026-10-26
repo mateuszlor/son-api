@@ -441,15 +441,20 @@ def _compute_latest(types=None):
         except Exception as e:
             logger.exception("finances fetch failed")
             warnings.append("finances: upstream error")
+            finances_ok = False
 
     estates_list = []
     # payout across all estates
     if "payout" in types_set:
+        estates_ok = False
+        cost_docs_ok = False
         try:
             with _panel_lock:
                 estates = client.get_estates()
             estates_list = estates
             estates_ok = True
+            if not estates_list:
+                cost_docs_ok = True
             for est in estates:
                 eid = est.get("estate_id")
                 if not eid:
