@@ -14,7 +14,7 @@ from typing import Optional
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 
 logger = logging.getLogger("son_api")
@@ -35,7 +35,7 @@ from lib.api_models import (
 
 def _is_noisy_path(path: str) -> bool:
     """Paths that are polled frequently by external monitors/probes."""
-    return path.startswith("/health") or path == "/v1/models"
+    return path.startswith("/health")
 
 app = FastAPI(title="SON Panel API", version="1.0.0")
 
@@ -160,9 +160,9 @@ def get_estate_payouts(estate_id: int):
 
 
 @app.get("/v1/latest", response_model=LatestOut)
-def get_latest():
+def get_latest(types: Optional[list[str]] = Query(default=None)):
     try:
-        return latest_invoices()
+        return latest_invoices(types=types)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -183,8 +183,19 @@ def post_latest_download(req: Optional[LatestDownloadRequest] = None, request: R
     proto = "http"
     host = None
     if request is not None:
-        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
-        host = request.headers.get("x-forwarded-host", request.headers.get("host"))
+        # A forwarded header may contain a comma-separated list when the request
+        # traverses multiple proxies. The leftmost entry is the original value
+        # seen by the client-facing proxy, so split and take the first one.
+        proto_header = request.headers.get("x-forwarded-proto", request.url.scheme)
+        proto = proto_header.split(",")[0].strip() if proto_header is not None else request.url.scheme
+        if not proto:
+            proto = request.url.scheme
+
+        forwarded_host = request.headers.get("x-forwarded-host")
+        if forwarded_host is None:
+            host = request.headers.get("host")
+        else:
+            host = forwarded_host.split(",")[0].strip()
         if not host:
             host = request.url.netloc
     if host:

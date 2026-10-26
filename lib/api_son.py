@@ -8,6 +8,7 @@ import os
 import re
 import json
 import time
+import tempfile
 import threading
 from dataclasses import dataclass
 from datetime import date
@@ -16,7 +17,7 @@ from typing import Optional
 from lib.son_client import SONInternalClient, OUT_DIR, parse_pln
 from lib.api_models import (
     TenantOut, OperationOut, LiabilityOut, InsuranceOut, FinanceOut, CostDocumentOut,
-    EstateOut, LatestOut, LatestDownloadOut, LatestDownloadResult, LatestDownloadRequest,
+    EstateOut, LatestOut, LatestDownloadOut, LatestDownloadResult,
     ArtifactLink,
 )
 
@@ -263,7 +264,7 @@ def estate_cost_documents(estate_id):
     out = []
     for e in parsed:
         out.append(CostDocumentOut(
-            estate_id=int(estate_id) if estate_id is not None and str(estate_id).isdigit() else None,
+            estate_id=_to_int(estate_id),
             date_added=_iso(e.get("date_added")),
             sale_date=_iso(e.get("sale_date")),
             seller=e.get("seller"),
@@ -309,18 +310,27 @@ def _load_state():
 def _save_state(state):
     path = _state_path()
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(
+        prefix=os.path.basename(path) + ".",
+        dir=os.path.dirname(path) or ".",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
 
 
 @dataclass
 class _LatestComputed:
-    income_raw: Optional[dict]
-    cost_raw: Optional[dict]
     payout_raw: Optional[dict]
-    payment_raw: Optional[dict]
     income_model: Optional[OperationOut]
     cost_model: Optional[FinanceOut]
     payout_model: Optional[CostDocumentOut]
@@ -504,7 +514,7 @@ def _compute_latest(types=None):
     if payout_raw is not None:
         eid = payout_raw.get("estate_id")
         payout_model = CostDocumentOut(
-            estate_id=int(eid) if eid is not None and str(eid).isdigit() else None,
+            estate_id=_to_int(eid),
             date_added=_iso(payout_raw.get("date_added")),
             sale_date=_iso(payout_raw.get("sale_date")),
             seller=payout_raw.get("seller"),
@@ -530,10 +540,7 @@ def _compute_latest(types=None):
     last_document_date = max(dates) if dates else None
 
     return _LatestComputed(
-        income_raw=income_raw,
-        cost_raw=cost_raw,
         payout_raw=payout_raw,
-        payment_raw=payment_raw,
         income_model=income_model,
         cost_model=cost_model,
         payout_model=payout_model,
@@ -557,77 +564,134 @@ def latest_invoices(types=None):
 
 def download_latest(types=None, force=False):
     c = _compute_latest(types)
-    types_set = set(types) if types else set(_ALLOWED_TYPES)
+    types_set = set(types) if types is not None else set(_ALLOWED_TYPES)
     unknown = types_set - _ALLOWED_TYPES
     if unknown:
         raise ValueError(f"unknown types: {sorted(unknown)}")
 
-    state = _load_state()
-    known = state.setdefault("all", [])
-    if not isinstance(known, list):
-        known = []
-        state["all"] = known
-
     client = get_client()
     downloads = {}
 
-    entries = [
-        ("income_invoice", c.income_model, c.income_raw, "income_invoice"),
-        ("cost_invoice", c.cost_model, c.cost_raw, "cost_invoice"),
-        ("payout", c.payout_model, c.payout_raw, "payout"),
-        ("payment", c.payment_model, c.payment_raw, "payment"),
-    ]
+    # Serialize state load/mutate/save (and the resulting downloads) so concurrent
+    # /v1/latest/download calls cannot lose updates or clobber the state file.
+    with _state_lock:
+        state = _load_state()
+        # Snapshot the loaded state so we can tell whether it actually changed
+        # (new entries appended / structure normalized) before reporting it.
+        state_before = json.dumps(state, sort_keys=True, default=str)
+        tenant_key = "all"
+        try:
+            raw_tenants = _get_raw_tenants()
+            active_tenants = [t for t in raw_tenants if _to_bool(t.get("user_active"))]
+            if active_tenants:
+                tid = active_tenants[0].get("tenant_id")
+                if tid is not None:
+                    tenant_key = str(tid)
+        except Exception:
+            tenant_key = "all"
 
-    for kind, model, raw, _ in entries:
-        if kind not in types_set:
-            downloads[kind] = LatestDownloadResult(kind=kind, status="skipped")
-            continue
-        if model is None:
-            downloads[kind] = LatestDownloadResult(kind=kind, status="no_entry")
-            continue
-        pdf_url = getattr(model, "pdf_url", None)
-        if not pdf_url:
-            downloads[kind] = LatestDownloadResult(kind=kind, status="no_pdf")
-            continue
+        known = state.setdefault(tenant_key, [])
+        if not isinstance(known, list):
+            known = []
+            state[tenant_key] = known
 
-        if kind == "income_invoice" or kind == "payment":
-            doc = getattr(model, "document", None) or kind
-        elif kind == "cost_invoice":
-            doc = getattr(model, "document", None) or kind
-        else:
-            doc = f"payout_{model.date_added}" if getattr(model, "date_added", None) else kind
+        entries = [
+            ("income_invoice", c.income_model, None, "income_invoice"),
+            ("cost_invoice", c.cost_model, None, "cost_invoice"),
+            ("payout", c.payout_model, c.payout_raw, "payout"),
+            ("payment", c.payment_model, None, "payment"),
+        ]
 
-        safe_name = re.sub(r"[^\w\-]", "_", str(doc))
-        dest = os.path.join(out_dir(), f"{safe_name}.pdf")
+        for kind, model, raw, _ in entries:
+            if kind not in types_set:
+                downloads[kind] = LatestDownloadResult(kind=kind, status="skipped")
+                continue
+            if model is None:
+                downloads[kind] = LatestDownloadResult(kind=kind, status="no_entry")
+                continue
+            pdf_url = getattr(model, "pdf_url", None)
+            if not pdf_url:
+                downloads[kind] = LatestDownloadResult(kind=kind, status="no_pdf")
+                continue
 
-        if not force and doc in known and os.path.exists(dest):
-            status = "already_have"
-        else:
+            tracked = True
+            if kind == "income_invoice" or kind == "payment":
+                doc = getattr(model, "document", None)
+                if not doc:
+                    d = getattr(model, "date", None)
+                    doc = f"{kind}_{d}" if d else None
+            elif kind == "cost_invoice":
+                doc = getattr(model, "document", None)
+                if not doc:
+                    d = getattr(model, "date", None)
+                    doc = f"{kind}_{d}" if d else None
+            else:
+                raw_date = None
+                if isinstance(raw, dict):
+                    raw_date = raw.get("date_added_raw")
+                if raw_date:
+                    doc = f"payout_{str(raw_date).replace('/', '-')}"
+                else:
+                    d = getattr(model, "date_added", None)
+                    if d:
+                        parts = str(d).split("-")
+                        if len(parts) == 3:
+                            doc = f"payout_{parts[2]}-{parts[1]}-{parts[0]}"
+                        else:
+                            doc = f"payout_{d}"
+                    else:
+                        doc = None
+
+            if not doc:
+                doc = kind
+                tracked = False
+
+            safe_name = re.sub(r"[^\w\-]", "_", str(doc))
+            dest = os.path.join(out_dir(), f"{safe_name}.pdf")
+
+            error = None
+            if tracked and not force and doc in known and os.path.exists(dest):
+                status = "already_have"
+            else:
+                try:
+                    with _panel_lock:
+                        ok = client.download_file(pdf_url, dest)
+                except Exception as e:
+                    c.warnings.append(f"{kind} download: {e}")
+                    ok = False
+                    error = str(e)
+                if not ok:
+                    if error is None:
+                        error = "download failed"
+                status = "saved" if ok else "failed"
+                if ok and tracked and doc not in known:
+                    known.append(doc)
+
+            # Only expose path/url when the file is actually present after a
+            # successful (or already-cached) download.
+            if status == "failed" or not os.path.exists(dest):
+                _path = None
+            else:
+                _path = os.path.basename(dest)
+            _rel = f"/v1/artifacts/{_path}" if _path else None
+            downloads[kind] = LatestDownloadResult(
+                kind=kind,
+                status=status,
+                path=_path,
+                url=ArtifactLink(relative=_rel, absolute=_rel) if _rel else None,
+                error=error if status == "failed" else None,
+            )
+
+        # Only treat the state as updated when its contents actually changed.
+        # Rewriting an identical known_invoices.json is not an update.
+        state_changed = json.dumps(state, sort_keys=True, default=str) != state_before
+        state_updated = False
+        if state_changed:
             try:
-                with _panel_lock:
-                    ok = client.download_file(pdf_url, dest)
+                _save_state(state)
+                state_updated = True
             except Exception as e:
-                c.warnings.append(f"{kind} download: {e}")
-                ok = False
-            status = "saved" if ok else "failed"
-            if ok and doc not in known:
-                known.append(doc)
-
-        _path = os.path.basename(dest) if os.path.exists(dest) else None
-        _rel = f"/v1/artifacts/{_path}" if _path else None
-        downloads[kind] = LatestDownloadResult(
-            kind=kind,
-            status=status,
-            path=_path,
-            url=ArtifactLink(relative=_rel, absolute=_rel) if _rel else None,
-        )
-
-    state_updated = False
-    try:
-        _save_state(state)
-        state_updated = True
-    except Exception as e:
-        c.warnings.append(f"state save: {e}")
+                c.warnings.append(f"state save: {e}")
 
     return LatestDownloadOut(
         income_invoice=c.income_model,
