@@ -30,7 +30,6 @@ class TestApiSon(unittest.TestCase):
     def test_list_tenants_conversion(self):
         with patch("lib.api_son.get_client", return_value=FakeClient()):
             # reset tenant name cache
-            api_son._tenant_name_cache = None
             api_son._tenants_raw_cache = None
             api_son._tenants_raw_cache_time = 0.0
             res = api_son.list_tenants()
@@ -43,7 +42,7 @@ class TestApiSon(unittest.TestCase):
 
     def test_tenant_operations_conversion(self):
         with patch("lib.api_son.get_client", return_value=FakeClient()):
-            api_son._tenant_name_cache = {"1": "Jan"}
+            pass
             res = api_son.tenant_operations("1")
         self.assertEqual(len(res), 1)
         self.assertIsInstance(res[0], OperationOut)

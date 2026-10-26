@@ -125,10 +125,6 @@ def list_estates():
 
 
 def _load_tenant_names():
-    global _tenant_name_cache, _tenant_name_cache_time
-    now = time.monotonic()
-    if _tenant_name_cache is not None and (now - _tenant_name_cache_time) < _TENANT_CACHE_TTL:
-        return _tenant_name_cache
     try:
         rows = _get_raw_tenants()
     except Exception:
