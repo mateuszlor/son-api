@@ -70,4 +70,6 @@ docker compose up -d --build
 
 All configuration is passed through environment variables in `docker-compose.yml`
 (`SON_PANEL_URL`, `SON_LOGIN`, `SON_PASSWORD`, `API_PORT`, ...). The host environment
-provides the values; the container no longer reads or mounts a `.env` file.
+provides the values; the container no longer reads or mounts a `.env` file. Compose still
+interpolates those variables from a `.env` file in the project directory, so an existing
+`.env` keeps working without being copied into or mounted in the image.
