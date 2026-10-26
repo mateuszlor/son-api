@@ -79,6 +79,39 @@ class CostDocumentOut(BaseModel):
     payment_date: Optional[str] = None
     download_zip_url: Optional[str] = None
     cost_document_id: Optional[int] = None
+    pdf_url: Optional[str] = None
+
+
+class ArtifactLink(BaseModel):
+    relative: str
+    absolute: str
+
+
+class LatestDownloadResult(BaseModel):
+    kind: str
+    status: str
+    path: Optional[str] = None
+    url: Optional[ArtifactLink] = None
+    error: Optional[str] = None
+
+
+class LatestOut(BaseModel):
+    income_invoice: Optional[OperationOut] = None
+    cost_invoice: Optional[FinanceOut] = None
+    payout: Optional[CostDocumentOut] = None
+    payment: Optional[OperationOut] = None
+    warnings: list[str] = []
+    last_document_date: Optional[str] = None
+
+
+class LatestDownloadOut(LatestOut):
+    downloads: dict[str, LatestDownloadResult] = {}
+    state_updated: bool = False
+
+
+class LatestDownloadRequest(BaseModel):
+    types: Optional[list[str]] = None
+    force: bool = False
 
 
 class EstateOut(BaseModel):
