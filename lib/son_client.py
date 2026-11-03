@@ -84,6 +84,11 @@ def extract_tables_with_links(html):
 # Client
 # ---------------------------------------------------------------------------
 
+
+class AccountLockedError(RuntimeError):
+    """Raised when the SON panel account is locked due to too many failed logins."""
+
+
 class SONInternalClient:
     def __init__(self):
         if not BASE:
@@ -97,6 +102,16 @@ class SONInternalClient:
         })
         self.csrf = None
         self._login()
+
+    def _handle_login_alert(self, alert_text):
+        import logging
+        logger = logging.getLogger("son_client")
+        lowered = alert_text.lower()
+        if "zablokowane" in lowered:
+            logger.error("Account locked: %s", alert_text)
+            raise AccountLockedError(alert_text)
+        logger.error("Login failed: %s", alert_text)
+        raise RuntimeError("Login failed: invalid email or password. Check .env")
 
     def _login(self):
         self.s.get(f"{BASE}/", timeout=30)
@@ -115,8 +130,10 @@ class SONInternalClient:
         if r.status_code != 200:
             raise RuntimeError(f"Login failed: HTTP {r.status_code}")
         if "Zaloguj" in r.text and "login-form" in r.text:
-            import logging
-            logging.getLogger("son_client").error("Login failed; server response (HTML):\n%s", r.text)
+            alert_el = BeautifulSoup(r.text, "html.parser").select_one(".alert.alert-danger")
+            alert_text = alert_el.get_text(" ", strip=True) if alert_el else ""
+            if alert_text:
+                self._handle_login_alert(alert_text)
             raise RuntimeError("Login failed: invalid email or password. Check .env")
         self._refresh_csrf(r.text)
         if not self.csrf:

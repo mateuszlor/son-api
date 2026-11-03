@@ -24,6 +24,7 @@ from lib.api_son import (
     tenant_insurances, finances, estate_cost_documents, estate_payouts, out_dir,
     latest_invoices, download_latest,
 )
+from lib.son_client import AccountLockedError
 from lib.path_safety import safe_resolve
 from lib.api_models import (
     TenantOut, OperationOut, LiabilityOut, InsuranceOut, FinanceOut,
@@ -64,6 +65,8 @@ async def log_requests(request, call_next):
 def _raise_panel_error(exc):
     if isinstance(exc, HTTPException):
         raise exc
+    if isinstance(exc, AccountLockedError):
+        raise HTTPException(status_code=423, detail=str(exc)) from exc
     import requests
     resp = getattr(exc, "response", None)
     if resp is not None:
