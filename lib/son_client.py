@@ -115,7 +115,9 @@ class SONInternalClient:
         if r.status_code != 200:
             raise RuntimeError(f"Login failed: HTTP {r.status_code}")
         if "Zaloguj" in r.text and "login-form" in r.text:
-            raise RuntimeError("Login failed: invalid email or password. Check .env\nServer response (first 200 chars): " + r.text[:200].replace("\n", " "))
+            import logging
+            logging.getLogger("son_client").error("Login failed; server response (HTML):\n%s", r.text)
+            raise RuntimeError("Login failed: invalid email or password. Check .env")
         self._refresh_csrf(r.text)
         if not self.csrf:
             for path in ["/", "/tenants/index", "/finances/index"]:
