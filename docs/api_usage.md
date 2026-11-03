@@ -28,6 +28,8 @@ Notes:
 - `GET /v1/finances` - owner finances
 - `GET /v1/estates/{id}/cost-documents` - estate cost documents
 - `GET /v1/estates/{id}/cost-documents/payouts` - payouts only
+- `GET /v1/latest` - latest entries (income invoice, cost invoice, payout, payment) without downloading; optional `types` query param (repeatable) filters computed types
+- `POST /v1/latest/download` - compute same entries, download PDFs, update `known_invoices.json`, return statuses/URLs
 - `GET /v1/artifacts/{path}` - download file (PDF/CSV)
 
 IDs are integers; booleans are true/false; dates are ISO (YYYY-MM-DD).
@@ -60,6 +62,12 @@ Invoke-RestMethod http://127.0.0.1:8000/v1/finances
 Download artifact:
 ```
 Invoke-WebRequest http://127.0.0.1:8000/v1/artifacts/operations.csv -OutFile operations.csv
+```
+
+Latest entries:
+```
+Invoke-RestMethod http://127.0.0.1:8000/v1/latest
+Invoke-RestMethod -Method Post http://127.0.0.1:8000/v1/latest/download -ContentType "application/json" -Body "{}"
 ```
 
 ## Docker
