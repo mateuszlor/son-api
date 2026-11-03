@@ -76,7 +76,8 @@ def _raise_panel_error(exc):
     else:
         status = 500
     logger.exception("SON panel error")
-    raise HTTPException(status_code=status, detail="SON panel error") from exc
+    detail = str(exc) if str(exc) else "SON panel error"
+    raise HTTPException(status_code=status, detail=detail) from exc
 
 
 @app.get("/health", response_model=HealthOut)
