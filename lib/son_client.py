@@ -109,7 +109,7 @@ class SONInternalClient:
         lowered = alert_text.lower()
         if "zablokowane" in lowered:
             logger.error("Account locked: %s", alert_text)
-            raise AccountLockedError(alert_text)
+            raise AccountLockedError("Account is locked")
         logger.error("Login failed: %s", alert_text)
         raise RuntimeError("Login failed: invalid email or password. Check .env")
 
